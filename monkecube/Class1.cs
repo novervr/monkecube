@@ -1,69 +1,87 @@
-﻿using System;
-using HarmonyLib;
+using System;
+using System.IO;
 using BepInEx;
+using HarmonyLib;
 using UnityEngine;
+using UnityEngine.UI;
 using System.Reflection;
-using System.Collections.Generic;
-using UnityEngine.XR;
+using GorillaNetworking;
+using UnityEngine.Networking;
+using Photon.Pun;
 
-namespace monkecube
+namespace KnownIssues
 {
     [BepInPlugin(modGUID, modName, modVersion)]
     public class Class1 : BaseUnityPlugin
     {
-        private const string modGUID = "Monke Cube";
-        private const string modName = "Monke Cube";
-        private const string modVersion = "1.0.0.0";
-        // On Awake() start the script.
+        private const string modGUID = "KnownIssues";
+        private const string modName = "KnownIssues";
+        private const string modVersion = "1.0.1";
+
+        private const bool localIsBanned = true;
+
+        // When the script is started do Awake() \\
         public void Awake()
         {
+            Debug.Log("Known Issues mod has been sucessfully read by BepInEx!");
+            // Harmony Patches \\
             var harmony = new Harmony(modGUID);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
         }
-        // harmony patches for Assembly-CSharp.dll
+
         [HarmonyPatch(typeof(GorillaLocomotion.Player))]
         [HarmonyPatch("FixedUpdate", MethodType.Normal)]
         class MainPatch
         {
-            static bool gripDown;
-            static bool triggerDown;
-
-            static GameObject cubeObject;
             static void Prefix(GorillaLocomotion.Player __instance)
             {
                 try
                 {
-                    List<InputDevice> list = new List<InputDevice>();
-                    InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.HeldInHand | InputDeviceCharacteristics.Left | InputDeviceCharacteristics.Controller, list);
-                    list[0].TryGetFeatureValue(CommonUsages.gripButton, out gripDown);
-                    list[0].TryGetFeatureValue(CommonUsages.triggerButton, out triggerDown);
-                    if (gripDown && triggerDown)
+                    for (int i = 0; i < GorillaComputer.instance.levelScreens.Length; i++)
                     {
-                        DrawCube(__instance);
+                        Material colorr = new Material(Shader.Find("Standard"));
+                        colorr.color = Color.cyan;
+                        // Find all text elements in Level/lower level/UI for Code of Conduct and the color for \\
+                        GameObject.Find("Level/lower level/StaticUnlit/screen").GetComponent<Renderer>().material = colorr;
+                        GameObject.Find("Level/lower level/UI/CodeOfConduct").GetComponent<Text>().text = "[<color=yellow>KNOWN ISSUES MOD</color>]";
+                        GameObject.Find("Level/lower level/UI/CodeOfConduct/COC Text").GetComponent<Text>().text = "THE CURRENT BUG FOR THIS MOD CURRENTLY IS GETTING INFO FROM A GITHUB PAGE. PLEASE WAIT FOR V1.0.2 UNTIL THIS IS FIXED. THANK YOU! ALSO REPORT BUGS ON MY DISCORD!";
                     }
-                    else
+
+                    if (PhotonNetworkController.Instance.wrongVersion)
                     {
-                        GameObject.Destroy(cubeObject);
+                        Debug.Log("KnownIssues has detected that the local player is not in latest version.");
+                        Material colorrupdate = new Material(Shader.Find("Standard"));
+                        colorrupdate.color = Color.red;
+                        GameObject.Find("Level/lower level/StaticUnlit/screen").GetComponent<Renderer>().material = colorrupdate;
+                        GameObject.Find("Level/lower level/UI/CodeOfConduct").GetComponent<Text>().text = "[<color=yellow>UPDATE</color>]";
+                        GameObject.Find("Level/lower level/UI/CodeOfConduct/COC Text").GetComponent<Text>().text = "PLEASE UPDATE YOUR GAME. THIS MOD ONLY SHOWS THE BUGS IN NEWER UPDATES. THANK YOU.";
+                    }
+
+                    if (localIsBanned == true)
+                    {
+                        Debug.Log("KnownIssues has detected that the local player is not in latest version.");
+                        Material colorrban = new Material(Shader.Find("Standard"));
+                        colorrban.color = Color.black;
+                        GameObject.Find("Level/lower level/StaticUnlit/screen").GetComponent<Renderer>().material = colorrban;
+                        GameObject.Find("Level/lower level/UI/CodeOfConduct").GetComponent<Text>().text = "[<color=red>BANNED</color>]";
+                        GameObject.Find("Level/lower level/UI/CodeOfConduct/COC Text").GetComponent<Text>().text = "DO NOT TRY TO BAN EVADE, BECAUSE ITS LIKELY YOU WILL GET BANNED ON YOUR BAN EVADING ACCOUNT. JUST WAIT OUT YOUR BAN!";
+                    }
+
+                    if (Application.internetReachability > NetworkReachability.NotReachable)
+                    {
+                        Debug.Log("KnownIssues has detected that the local player is not connected / unable to authenticate steam account.");
+                        Material colorrwifi = new Material(Shader.Find("Standard"));
+                        colorrwifi.color = Color.green;
+                        GameObject.Find("Level/lower level/StaticUnlit/screen").GetComponent<Renderer>().material = colorrwifi;
+                        GameObject.Find("Level/lower level/UI/CodeOfConduct").GetComponent<Text>().text = "[<color=white>CONNECT TO WIFI OR LAN.</color>]";
+                        GameObject.Find("Level/lower level/UI/CodeOfConduct/COC Text").GetComponent<Text>().text = "PLEASE CONNECT TO YOUR WIFI / LAN IN ORDER FOR KNOWN ISSUES TO WORK, OR IF THIS IS WRONG YOU PROBABLY ARE NOT AUTHENTICATED TO YOUR STEAM / OCULUS PC APP.";
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    Debug.Log("Error has been found. Writing the error onto KnownIssuesLog.txt.");
+                    File.WriteAllText("KnownIssuesLog.txt", ex.ToString());
                 }
-            }
-            static void DrawCube(GorillaLocomotion.Player player)
-            {
-                if (cubeObject)
-                    GameObject.Destroy(cubeObject);
-                cubeObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                cubeObject.transform.parent = player.leftControllerTransform;
-                cubeObject.transform.position = player.leftControllerTransform.position;
-                cubeObject.transform.rotation = player.leftControllerTransform.rotation;
-                cubeObject.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f);
-                cubeObject.GetComponent<Renderer>().material.color = Color.cyan;
-
-                GameObject.Destroy(cubeObject.GetComponent<Rigidbody>());
-                GameObject.Destroy(cubeObject.GetComponent<Collider>());
             }
         }
     }
