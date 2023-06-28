@@ -18,7 +18,7 @@ namespace KnownIssues
         private const string modName = "KnownIssues";
         private const string modVersion = "1.0.1";
 
-        private const bool localIsBanned = true;
+        private const bool localIsBanned = false;
 
         // When the script is started do Awake() \\
         public void Awake()
